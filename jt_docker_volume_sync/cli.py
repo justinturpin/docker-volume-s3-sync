@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Save and restore Docker Volumes to and from S3. Also supports saving volumes to disk.
 """
@@ -9,6 +7,20 @@ import os
 import tempfile
 
 from subprocess import run, PIPE
+
+IMAGE_NAME = 'jt-docker-volume-backup'
+
+
+def _create_backup_image():
+    """
+    Create a Docker image with the tools we need for backup and restore.
+    """
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        with open(os.path.join(tempdir.name, 'Dockerfile'), 'w') as f:
+            f.write('FROM alpine:edge\nRUN apk add -U xz gzip')
+
+        run(['docker', 'build', '-t', IMAGE_NAME, '.'], cwd=tempdir)
 
 
 @click.group()
@@ -26,25 +38,27 @@ def volume_exists(volume_name) -> bool:
 
 
 def volume_save_to_file(volume_name: str, path: str):
+    _create_backup_image()
     filename, dirname = path_split(path)
 
     run([
         'docker', 'run', '--rm',
         '-v', '{}:/data'.format(volume_name),
         '-v', '{}:/tmp'.format(dirname),
-        'alpine:edge',
+        IMAGE_NAME,
         'tar', '-cf', '/tmp/{}'.format(filename), '-C', '/data', '.'
     ])
 
 
 def volume_restore_from_file(volume_name: str, path: str):
+    _create_backup_image()
     filename, dirname = path_split(path)
 
     run([
         'docker', 'run', '--rm',
         '-v', '{}:/data'.format(volume_name),
         '-v', '{}:/tmp:ro'.format(dirname),
-        'alpine:edge',
+        IMAGE_NAME,
         'tar', '-xf', '/tmp/{}'.format(filename), '-C', '/data', '.'
     ])
 
@@ -64,14 +78,20 @@ def volume_to_file(volume_name: str, path: str):
 @click.argument('path')
 @click.argument('volume-name')
 def file_to_volume(path: str, volume_name: str):
+    """
+    Restore a file to a volume.
+    """
+
     volume_restore_from_file(volume_name, path)
 
 
 @cli.command()
-@click.argument('volume-name', help='docker volume name to back up')
-@click.argument('s3-path', help='s3 url to upload to (eg. s3://my-backup-bucket/myfile.tar.gz)')
+@click.argument('volume-name')
+@click.argument('s3-path')
 def volume_to_s3(volume_name, s3_path):
-    """Upload a volume to an S3 bucket."""
+    """
+    Upload a volume to an S3 bucket.
+    """
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmpfilename = os.path.join(tmpdirname, 'volume.tar.gz')
@@ -80,9 +100,9 @@ def volume_to_s3(volume_name, s3_path):
 
 
 @cli.command()
-@click.argument('s3-path', help='s3 url to restore from (eg. s3://my-backup-bucket/myfile.tar.gz)')
-@click.argument('volume-name', help='docker volume name to create')
-@click.option('--force', flag=True)
+@click.argument('s3-path')
+@click.argument('volume-name')
+@click.option('--force', is_flag=True)
 def s3_to_volume(s3_path, volume_name, force: bool):
     """
     Restore a volume from S3. By default will not restore a docker volume if a volume of that name
@@ -103,7 +123,3 @@ def s3_to_volume(s3_path, volume_name, force: bool):
         tmpfilename = os.path.join(tmpdirname, 'volume.tar.gz')
         run(['s3cmd', 'get', s3_path, tmpfilename])
         volume_restore_from_file(volume_name, tmpfilename)
-
-
-if __name__ == '__main__':
-    cli()
