@@ -17,7 +17,7 @@ def _create_backup_image():
     """
 
     with tempfile.TemporaryDirectory() as tempdir:
-        with open(os.path.join(tempdir.name, 'Dockerfile'), 'w') as f:
+        with open(os.path.join(tempdir, 'Dockerfile'), 'w') as f:
             f.write('FROM alpine:edge\nRUN apk add -U xz gzip')
 
         run(['docker', 'build', '-t', IMAGE_NAME, '.'], cwd=tempdir)
@@ -41,12 +41,14 @@ def volume_save_to_file(volume_name: str, path: str):
     _create_backup_image()
     filename, dirname = path_split(path)
 
+    click.echo('Saving volume {} to path {}'.format(volume_name, path))
+
     run([
         'docker', 'run', '--rm',
         '-v', '{}:/data'.format(volume_name),
         '-v', '{}:/tmp'.format(dirname),
         IMAGE_NAME,
-        'tar', '-cf', '/tmp/{}'.format(filename), '-C', '/data', '.'
+        'tar', '-caf', '/tmp/{}'.format(filename), '-C', '/data', '.'
     ])
 
 
@@ -59,7 +61,7 @@ def volume_restore_from_file(volume_name: str, path: str):
         '-v', '{}:/data'.format(volume_name),
         '-v', '{}:/tmp:ro'.format(dirname),
         IMAGE_NAME,
-        'tar', '-xf', '/tmp/{}'.format(filename), '-C', '/data', '.'
+        'tar', '-xaf', '/tmp/{}'.format(filename), '-C', '/data', '.'
     ])
 
 
