@@ -5,8 +5,7 @@ Save and restore Docker Volumes to and from S3. Also supports saving volumes to 
 import click
 import os
 import tempfile
-
-from subprocess import run, PIPE
+import subprocess
 
 IMAGE_NAME = 'jt-docker-volume-backup'
 
@@ -18,9 +17,15 @@ def _create_backup_image():
 
     with tempfile.TemporaryDirectory() as tempdir:
         with open(os.path.join(tempdir, 'Dockerfile'), 'w') as f:
-            f.write('FROM alpine:edge\nRUN apk add -U xz gzip')
+            f.write('FROM alpine:edge\nRUN apk add -U xz gzip tar')
 
         run(['docker', 'build', '-t', IMAGE_NAME, '.'], cwd=tempdir)
+
+
+def run(cmd, cwd=None):
+    click.secho(' '.join(cmd))
+
+    subprocess.run(cmd, cwd=cwd)
 
 
 @click.group()
@@ -61,7 +66,7 @@ def volume_restore_from_file(volume_name: str, path: str):
         '-v', '{}:/data'.format(volume_name),
         '-v', '{}:/tmp:ro'.format(dirname),
         IMAGE_NAME,
-        'tar', '-xaf', '/tmp/{}'.format(filename), '-C', '/data', '.'
+        'tar', '-xaf', '/tmp/{}'.format(filename), '-C', '/data'
     ])
 
 
@@ -96,7 +101,7 @@ def volume_to_s3(volume_name, s3_path):
     """
 
     with tempfile.TemporaryDirectory() as tmpdirname:
-        tmpfilename = os.path.join(tmpdirname, 'volume.tar.gz')
+        tmpfilename = os.path.join(tmpdirname, os.path.basename(s3_path))
         volume_save_to_file(volume_name, tmpfilename)
         run(['s3cmd', 'put', tmpfilename, s3_path])
 
