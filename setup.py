@@ -5,7 +5,7 @@ setup(
     version='0.1.0-alpha1',
     install_requires=[
         'click',
-        's3cmd'
+        's3cmd>=7.0.0'
     ],
     packages=find_packages(exclude=['bin', 'env', 'test']),
     entry_points={
