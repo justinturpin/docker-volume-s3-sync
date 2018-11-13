@@ -4,8 +4,8 @@ setup(
     name='docker_volume_sync',
     version='0.1.0-alpha1',
     install_requires=[
-        'click',
-        's3cmd>=7.0.0'
+        'click>=7.0.0',
+        's3cmd'
     ],
     packages=find_packages(exclude=['bin', 'env', 'test']),
     entry_points={
