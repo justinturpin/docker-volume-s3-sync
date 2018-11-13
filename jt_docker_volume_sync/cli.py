@@ -38,7 +38,7 @@ def path_split(path: str):
 
 
 def volume_exists(volume_name) -> bool:
-    return volume_name in run(['docker', 'volume', 'ls', '-q'], stdout=PIPE) \
+    return volume_name in run(['docker', 'volume', 'ls', '-q'], stdout=subprocess.PIPE) \
         .stdout.decode().splitlines()
 
 
