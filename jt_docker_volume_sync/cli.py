@@ -22,10 +22,10 @@ def _create_backup_image():
         run(['docker', 'build', '-t', IMAGE_NAME, '.'], cwd=tempdir)
 
 
-def run(cmd, cwd=None):
+def run(cmd, cwd=None, stdout=None):
     click.secho(' '.join(cmd))
 
-    subprocess.run(cmd, cwd=cwd)
+    return subprocess.run(cmd, cwd=cwd, stdout=stdout)
 
 
 @click.group()
