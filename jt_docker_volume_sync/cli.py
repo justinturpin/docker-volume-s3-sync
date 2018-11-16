@@ -127,6 +127,6 @@ def s3_to_volume(s3_path, volume_name, force: bool):
     with tempfile.TemporaryDirectory() as tmpdirname:
         # Create a temporary directory to put our volume file in.
 
-        tmpfilename = os.path.join(tmpdirname, 'volume.tar.gz')
+        tmpfilename = os.path.join(tmpdirname, os.path.basename(s3_path))
         run(['s3cmd', 'get', s3_path, tmpfilename])
         volume_restore_from_file(volume_name, tmpfilename)
