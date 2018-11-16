@@ -43,6 +43,11 @@ def volume_exists(volume_name) -> bool:
 
 
 def volume_save_to_file(volume_name: str, path: str):
+    if not volume_exists(volume_name):
+        click.secho(f'Volume `{volume_name}` does not exist, not saving.', fg='yellow')
+        
+        return
+
     _create_backup_image()
     filename, dirname = path_split(path)
 
