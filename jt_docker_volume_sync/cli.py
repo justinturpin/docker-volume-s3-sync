@@ -17,7 +17,7 @@ def _create_backup_image():
 
     with tempfile.TemporaryDirectory() as tempdir:
         with open(os.path.join(tempdir, 'Dockerfile'), 'w') as f:
-            f.write('FROM alpine:edge\nRUN apk add -U xz gzip tar')
+            f.write('FROM alpine:latest\nRUN apk add -U xz gzip tar')
 
         run(['docker', 'build', '-t', IMAGE_NAME, '.'], cwd=tempdir)
 
